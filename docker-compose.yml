@@ -5,27 +5,41 @@ services:
     container_name: authors-service
     ports:
       - 8081:8081
+    environment:
+      - JAEGER_AGENT_HOST=jaeger
+      - JAEGER_AGENT_PORT=6832
     depends_on:
+      - jaeger
       - redis
     networks:
       - mynet
+
   books:
     build: ./books
     container_name: books-service
     ports:
       - 8082:8082
+    environment:
+      - JAEGER_AGENT_HOST=jaeger
+      - JAEGER_AGENT_PORT=6832
     networks:
       - mynet
     depends_on:
+      - jaeger
       - redis
+
   frontend:
     build: ./frontend
     container_name: frontend-service
     ports:
       - 8083:8083
+    environment:
+      - JAEGER_AGENT_HOST=jaeger
+      - JAEGER_AGENT_PORT=6832
     networks:
       - mynet
     depends_on:
+      - jaeger
       - redis
 
   redis:
@@ -33,6 +47,15 @@ services:
     container_name: redis
     ports:
       - 6379:6379
+    networks:
+      - mynet
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.22.0
+    ports:
+      - 16686:16686
+      - 6832:6832/udp
+    restart: on-failure
     networks:
       - mynet
 
