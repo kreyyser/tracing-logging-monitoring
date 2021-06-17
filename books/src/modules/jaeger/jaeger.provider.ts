@@ -1,5 +1,6 @@
 import { initTracerFromEnv } from 'jaeger-client';
 import * as opentracing from 'opentracing';
+import { Logger } from '@nestjs/common';
 
 export const JAEGER_CLIENT = 'JAEGER_CLIENT';
 export const jaegerProvider = {
@@ -20,7 +21,7 @@ export const jaegerProvider = {
       tags: {
         version: '0.0.1',
       },
-      logger: console,
+      logger: new CustomLogger('JEAGER'),
     };
 
     opentracing.initGlobalTracer(initTracerFromEnv(config, options));
@@ -28,3 +29,9 @@ export const jaegerProvider = {
     return opentracing.globalTracer();
   },
 };
+
+class CustomLogger extends Logger {
+  info(message: any, context?: string): void {
+    this.log(message, context);
+  }
+}

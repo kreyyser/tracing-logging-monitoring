@@ -1,8 +1,8 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { jaegerProvider } from './jaeger.provider';
 
 @Module({
-  providers: [jaegerProvider],
+  providers: [jaegerProvider, Logger],
   exports: [jaegerProvider],
 })
 export class JaegerModule {}

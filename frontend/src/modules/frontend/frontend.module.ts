@@ -1,4 +1,4 @@
-import { MiddlewareConsumer, Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, Logger } from '@nestjs/common';
 import { ApiModule } from '../api/api.module';
 
 import { FrontendController } from './frontend.controller';
@@ -7,6 +7,7 @@ import { JaegerModule } from '../jaeger/jaeger.module';
 import { StorageModule } from '../storage/storage.module';
 
 @Module({
+  providers: [Logger],
   imports: [ApiModule, JaegerModule, StorageModule],
   controllers: [FrontendController],
 })

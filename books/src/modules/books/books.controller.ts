@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Inject, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Logger,
+  Param,
+  Post,
+} from '@nestjs/common';
 import { RedisClient } from 'redis';
 
 import { REDIS_CONNECTION, REDIS_TOPIC } from '../redis/redis.providers';
@@ -13,17 +21,24 @@ import { AsyncLocalStorage } from 'async_hooks';
 export class BooksController {
   constructor(
     private readonly booksService: BooksService,
+    private readonly logger: Logger,
     @Inject(REDIS_CONNECTION)
     private readonly redisInstance: RedisClient,
     @Inject(JAEGER_CLIENT)
     private readonly tracer,
     @Inject(STORAGE)
     private readonly storage: AsyncLocalStorage<any>,
-  ) {}
+  ) {
+    this.logger.setContext(BooksController.name);
+  }
 
   @Get('/')
   async getBooks(): Promise<BookDto[]> {
-    console.log('Get books');
+    this.logger.log({
+      level: 'info',
+      message: 'Fetching books',
+      ...this.getTraceData(),
+    });
 
     const span = this.tracer.startSpan('redis.books.list', {
       childOf: this.storage.getStore().get('span'),
@@ -55,5 +70,14 @@ export class BooksController {
 
   private sendPushNotification(response: BookDto): void {
     this.redisInstance.set(REDIS_TOPIC, JSON.stringify(response));
+  }
+
+  private getTraceData() {
+    const spanCtx = this.storage.getStore().get('span').context();
+    return {
+      traceId: spanCtx.traceIdStr,
+      spanId: spanCtx.spanIdStr,
+      parentId: spanCtx.parentIdStr,
+    };
   }
 }
