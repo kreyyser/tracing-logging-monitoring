@@ -3,6 +3,8 @@ services:
   authors:
     build: ./authors
     container_name: authors-service
+    volumes:
+      - ./authors/authors.log:/var/www/node/authors.log
     ports:
       - 8081:8081
     environment:
@@ -17,6 +19,8 @@ services:
   books:
     build: ./books
     container_name: books-service
+    volumes:
+      - ./books/books.log:/var/www/node/books.log
     ports:
       - 8082:8082
     environment:
@@ -31,6 +35,8 @@ services:
   frontend:
     build: ./frontend
     container_name: frontend-service
+    volumes:
+      - ./frontend/frontend.log:/var/www/node/frontend.log
     ports:
       - 8083:8083
     environment:
@@ -56,6 +62,41 @@ services:
       - 16686:16686
       - 6832:6832/udp
     restart: on-failure
+    networks:
+      - mynet
+
+  elasticsearch:
+    image: "docker.elastic.co/elasticsearch/elasticsearch:7.2.0"
+    environment:
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - "discovery.type=single-node"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      - mynet
+
+  kibana:
+    image: "docker.elastic.co/kibana/kibana:7.2.0"
+    ports:
+      - "5601:5601"
+    environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
+    networks:
+      - mynet
+
+  filebeat:
+    image: "docker.elastic.co/beats/filebeat:7.2.0"
+    user: root
+    environment:
+      setup.kibana.host: http://kibana:5601
+      output.elasticsearch.hosts: '["http://elasticsearch:9200"]'
+    volumes:
+      - ./filebeat.yaml:/usr/share/filebeat/filebeat.yml:ro
+      - ./authors/authors.log:/var/log/authors/authors.log
+      - ./books/books.log:/var/log/books/books.log
+      - ./frontend/frontend.log:/var/log/frontend/frontend.log
     networks:
       - mynet
 

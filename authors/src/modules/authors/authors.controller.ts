@@ -1,5 +1,14 @@
-import { Body, Controller, Get, Inject, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Logger,
+  Param,
+  Post,
+} from '@nestjs/common';
 import { RedisClient } from 'redis';
+import { AsyncLocalStorage } from 'async_hooks';
 
 import { AuthorsService } from './authors.service';
 import { AuthorDto, CreateAuthorInput } from './authors.dto';
@@ -7,23 +16,29 @@ import { REDIS_CONNECTION, REDIS_TOPIC } from '../redis/redis.providers';
 import { JAEGER_CLIENT } from '../jaeger/jaeger.provider';
 import { Author } from './authors.model';
 import { STORAGE } from '../storage/storage.provider';
-import { AsyncLocalStorage } from 'async_hooks';
 
 @Controller('api/v1/authors')
 export class AuthorsController {
   constructor(
     private readonly authorsService: AuthorsService,
+    private readonly logger: Logger,
     @Inject(REDIS_CONNECTION)
     private readonly redisInstance: RedisClient,
     @Inject(JAEGER_CLIENT)
     private readonly tracer,
     @Inject(STORAGE)
     private readonly storage: AsyncLocalStorage<any>,
-  ) {}
+  ) {
+    this.logger.setContext(AuthorsController.name);
+  }
 
   @Get('/')
   getAuthors(): AuthorDto[] {
-    console.log('Get authors');
+    this.logger.log({
+      level: 'info',
+      message: 'Fetching authors',
+      ...this.getTraceData(),
+    });
 
     const span = this.tracer.startSpan('redis.authors.list', {
       childOf: this.storage.getStore().get('span'),
@@ -54,5 +69,14 @@ export class AuthorsController {
 
   private sendPushNotification(response: AuthorDto): void {
     this.redisInstance.set(REDIS_TOPIC, JSON.stringify(response));
+  }
+
+  private getTraceData() {
+    const spanCtx = this.storage.getStore().get('span').context();
+    return {
+      traceId: spanCtx.traceIdStr,
+      spanId: spanCtx.spanIdStr,
+      parentId: spanCtx.parentIdStr,
+    };
   }
 }

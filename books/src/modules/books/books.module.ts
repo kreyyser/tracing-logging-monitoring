@@ -1,4 +1,4 @@
-import { MiddlewareConsumer, Module } from '@nestjs/common';
+import { Logger, MiddlewareConsumer, Module } from '@nestjs/common';
 
 import { ApiModule } from '../api/api.module';
 import { RedisModule } from '../redis/redis.module';
@@ -11,7 +11,7 @@ import { TracingMiddleware } from '../../middlewares/jaeger.middleware';
 @Module({
   imports: [ApiModule, RedisModule, JaegerModule, StorageModule],
   controllers: [BooksController],
-  providers: [BooksService],
+  providers: [BooksService, Logger],
 })
 export class BooksModule {
   configure(consumer: MiddlewareConsumer) {
